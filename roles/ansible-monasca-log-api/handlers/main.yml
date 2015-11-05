@@ -1,0 +1,11 @@
+---
+# Copyright 2015 FUJITSU LIMITED
+
+- name: restart monasca-log-api
+  service: name=monasca-log-api state=restarted
+
+- name: restart firewalld
+  service: name=firewalld state=restarted enabled=yes
+
+- name: save iptables
+  command: /sbin/iptables-save

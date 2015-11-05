@@ -1,0 +1,5 @@
+---
+# Copyright 2015 FUJITSU LIMITED
+
+- name: restart monasca-log-agent
+  service: name=monasca-log-agent state=restarted enabled=yes

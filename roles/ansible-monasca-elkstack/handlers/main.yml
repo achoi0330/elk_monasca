@@ -1,0 +1,20 @@
+---
+# Copyright 2015 FUJITSU LIMITED
+
+- name: restart elasticsearch
+  service: name=elasticsearch state=restarted enabled=yes
+
+- name: restart kibana
+  service: name=kibana state=restarted enabled=yes
+
+- name: restart firewalld
+  service: name=firewalld state=restarted enabled=yes
+
+- name: save iptables
+  command: /sbin/iptables-save
+
+- name: restart monasca-log-transformer
+  service: name=monasca-log-transformer state=restarted enabled=yes
+
+- name: restart monasca-log-persister
+  service: name=monasca-log-persister state=restarted enabled=yes

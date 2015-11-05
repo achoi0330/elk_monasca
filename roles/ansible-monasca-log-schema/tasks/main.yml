@@ -1,0 +1,5 @@
+---
+# Copyright 2015 FUJITSU LIMITED
+
+- include: kafka_topics.yaml tags=kafka_log_topics
+  when: kafka_log_topics_enabled

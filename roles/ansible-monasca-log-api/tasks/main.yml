@@ -1,0 +1,120 @@
+---
+# Copyright 2015 FUJITSU LIMITED
+
+- name: setup group
+  group: name={{ monasca_group }} system=yes
+
+- name: Setup user
+  user: name={{ monasca_log_api_user }} system=yes group={{ monasca_group }}
+
+- name: Create jar dir
+  file: path={{monasca_jar_dir}} state=directory owner=root group={{ monasca_group }} mode=750
+
+- name: Fetch log-api jar
+  get_url: dest={{monasca_jar_dir}}/monasca-log-api.jar url="http://tarballs.openstack.org/ci/monasca-log-api/monasca-log-api-{{monasca_log_api_version}}-shaded.jar" force=yes timeout=100
+  notify:
+    - restart monasca-log-api
+  when: not skip_install
+
+- name: Set owner and group for log-api jar
+  file: path={{monasca_jar_dir}}/monasca-log-api.jar state=file owner={{ monasca_log_api_user }} group={{ monasca_group }} mode=640
+
+- name: Detect if this is a systemd based system
+  command: cat /proc/1/comm
+  register: init
+- set_fact: use_systemd=True
+  when: init.stdout == 'systemd'
+- set_fact: use_systemd=False
+  when: init.stdout != 'systemd'
+
+- name: Check if firewalld
+  command: /usr/bin/systemctl status firewalld
+  ignore_errors: yes
+  register: firewalld
+  when: use_systemd
+
+- name: Set firewalld rule
+  firewalld: port="{{ item }}/tcp" permanent=true state=enabled
+  with_items:
+    - "{{ monasca_log_api_client_port }}"
+    - "{{ monasca_log_api_admin_port }}"
+  notify:
+    - restart firewalld
+  when: firewalld is defined and firewalld.rc == 0
+
+- name: Check if ports are allowed
+  shell: iptables -L | grep -q "Allow_tcp_{{item}}"
+  with_items:
+    - "{{ monasca_log_api_client_port }}"
+    - "{{ monasca_log_api_admin_port }}"
+  register: check_allow_tcp
+  ignore_errors: yes
+  changed_when: no
+  always_run: yes
+  when: firewalld is undefined or firewalld.rc != 0
+
+- name: Allow ports
+  command: >
+    iptables -A INPUT -p tcp -m tcp --dport {{item.item}} -m comment --comment "Allow_tcp_{{item.item}}" -j ACCEPT
+  with_items: check_allow_tcp.results
+  notify:
+    - save iptables
+  when: (firewalld is undefined or firewalld.rc != 0) and item.rc != 0
+
+- name: Create systemd config
+  template: dest={{ log_api_systemd_service }} owner=root group=root mode=640 src=monasca-log-api.service.j2
+  notify:
+    - restart monasca-log-api
+  when: use_systemd
+
+- command: systemctl daemon-reload
+  when: use_systemd
+
+- name: Create upstart script from template
+  template: dest={{ log_api_upstart_service }} owner=root group=root mode=640 src=monasca-log-api.conf.j2
+  notify:
+    - restart monasca-log-api
+  when: not use_systemd
+
+- name: Create log-api log dir
+  file: path={{ log_api_log_dir }} state=directory owner={{ monasca_log_api_user }} group={{ monasca_group }} mode="u+rwX,g+rX,o-rwx" recurse=yes
+
+- name: Check if conf_dir exists
+  stat: path={{monasca_conf_dir}}
+  register: monasca_conf_dir_status
+
+- name: Create conf_dir
+  file: path={{monasca_conf_dir}} state=directory owner={{monasca_api_user}} group={{monasca_group}} mode="750" recurse=yes
+  when: monasca_conf_dir_status.stat.exists == false
+
+- name: Create conf_file from template
+  template: dest={{ log_api_conf_file }} owner={{ monasca_log_api_user }} group={{ monasca_group }} mode=640 src=log-api-config.yml.j2
+  notify:
+    - restart monasca-log-api
+
+- name: Copy Truststore
+  copy: dest={{monasca_api_truststore}} src={{monasca_api_truststore_src}}
+  when: monasca_api_truststore_src is defined
+  notify:
+    - restart monasca-log-api
+
+- name: Copy Client Keystore
+  copy: dest={{monasca_api_client_keystore}} src={{monasca_api_client_keystore_src}}
+  when: monasca_api_client_keystore_src is defined
+  notify:
+    - restart monasca-log-api
+
+- name: Copy Keystore
+  copy: dest={{monasca_api_keystore}} src={{monasca_api_keystore_src}}
+  when: monasca_api_keystore_src is defined
+  notify:
+    - restart monasca-log-api
+
+- meta: flush_handlers
+
+- name: Enable monasca-log-api
+  service: name=monasca-log-api state=started enabled=yes
+
+- name: Wait for log-api port
+  wait_for: port={{monasca_log_api_client_port}} host={{monasca_log_api_bind_host | default('127.0.0.1') }} state=started timeout="{{ log_api_wait_timeout }}"
+  when: verify

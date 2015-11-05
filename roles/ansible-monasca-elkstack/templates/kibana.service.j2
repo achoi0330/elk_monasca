@@ -1,0 +1,12 @@
+[Unit]
+Description=Kibana
+Requires=network.target
+After=network.target
+
+[Service]
+Type=simple
+Restart=on-failure
+ExecStart={{ kibana_dest }}/bin/kibana
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,13 @@
+---
+# ©Copyright 2015 Hewlett-Packard Development Company, L.P.
+
+- name: Install deps to avoid pip doing compilation
+  apt: name={{item}} state=present
+  with_items: dependencies
+
+- include: pip_index.yml
+
+- name: pip install monasca-notification
+  pip: name=monasca-notification state=latest virtualenv="{{monasca_virtualenv_dir}}"
+  notify:
+    - restart monasca-notification

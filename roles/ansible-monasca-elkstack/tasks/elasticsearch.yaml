@@ -1,0 +1,72 @@
+---
+# Copyright 2015 FUJITSU LIMITED
+
+- name: Setup group
+  group: name={{elastic_group}} system=yes
+
+- name: Setup user
+  user: name={{elastic_user}} system=yes group={{elastic_group}}
+
+- name: Fetch elasticsearch tar.gz file
+  get_url: >
+    dest={{ download_tmp_dir }}/elasticsearch-{{elasticsearch_version}}.tar.gz
+    url={{elasticsearch_download}}/elasticsearch-{{elasticsearch_version}}.tar.gz
+    timeout={{download_timeout}}
+
+- name: Uncompress the elasticsearch tar
+  unarchive: >
+    copy=no
+    dest={{elk_base_dir}}
+    src={{ download_tmp_dir }}/elasticsearch-{{elasticsearch_version}}.tar.gz
+
+- name: Set proper attributes of elasticsearch files
+  file:
+    path={{elk_base_dir}}/elasticsearch-{{elasticsearch_version}}
+    state=directory
+    owner={{elastic_user}}
+    group={{elastic_group}}
+    mode="u+rwX,g+rX,o-rwx"
+    recurse=yes
+
+- name: Link elasticsearch files
+  file: >
+    src={{elk_base_dir}}/elasticsearch-{{elasticsearch_version}}
+    dest={{elasticsearch_dest}}
+    owner={{elastic_user}} 
+    group={{elastic_group}}
+    state=link
+    force=no
+
+- name: Create log dir
+  file: path={{elasticsearch_log_dir}} state=directory owner={{elastic_user}} group={{elastic_group}} mode="u+rwX,g+rX,o-rwx" recurse=yes
+
+- name: Create elasticsearch config
+  template: dest="{{ elasticsearch_dest }}/config/elasticsearch.yml" owner={{elastic_user}} group={{elastic_group}} mode=640 src=elasticsearch.yml.j2
+  notify:
+    - restart elasticsearch
+
+- name: Create upstart config
+  template: dest=/etc/init/elasticsearch.conf owner=root group=root mode=640 src=elasticsearch.conf.j2
+  notify:
+    - restart elasticsearch
+  when: ansible_os_family == "Debian"
+
+- name: Create systemd config
+  template: dest=/etc/systemd/system/elasticsearch.service owner=root group=root mode=640 src=elasticsearch.service.j2
+  notify:
+    - restart elasticsearch
+  when: ansible_os_family == "RedHat"
+
+- name: create directory for index template
+  file: path="{{ elasticsearch_dest }}/config/templates" state=directory owner={{elastic_user}} group={{elastic_group}} mode="u+rwX,g+rX,o-rwx"
+
+- name: Create template for logstash index
+  copy: src=monasca-logstash.json dest="{{ elasticsearch_dest }}/config/templates/monasca-logstash.json" owner={{elastic_user}} group={{elastic_group}} mode=640
+
+- name: Enable elasticsearch
+  service: name=elasticsearch state=started enabled=yes
+
+- name: Load logstash index template
+  command: /usr/bin/curl -XPUT 'localhost:9200/_template/logstash' -d @monasca-logstash.json
+  args:
+    chdir: "{{ elasticsearch_dest }}/config/templates"

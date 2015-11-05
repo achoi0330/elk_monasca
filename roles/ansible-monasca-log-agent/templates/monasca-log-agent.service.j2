@@ -1,0 +1,12 @@
+[Unit]
+Description=monasca-log-agent
+Requires=network.target
+After=network.target
+
+[Service]
+Type=simple
+Restart=on-failure
+ExecStart=/usr/bin/sudo {{logstash_agent_dest}}/bin/logstash -f {{logstash_agent_conf_dir}}/agent.conf -l {{logstash_agent_log_file}} --verbose
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,48 @@
+---
+# Copyright 2015 FUJITSU LIMITED
+
+elk_base_dir: /opt
+download_timeout: 600
+
+download_tmp_dir: /opt
+elasticsearch_version: 1.5.1
+elasticsearch_download: http://download.elasticsearch.org/elasticsearch/elasticsearch
+elasticsearch_dest: "{{elk_base_dir}}/elasticsearch"
+
+kibana_version: 4.1.1
+kibana_download: https://github.com/FujitsuEnablingSoftwareTechnologyGmbH/kibana 
+kibana_dest: "{{elk_base_dir}}/kibana"
+
+kibana_port: 5601
+elasticsearch_port: 9200
+elasticsearch_host: "127.0.0.1"
+elasticsearch_hosts: ["{{elasticsearch_host}}"]
+kibana_log_level: debug
+
+logstash_version: 1.5.0
+logstash_download: http://download.elastic.co/logstash/logstash
+logstash_dest: "{{elk_base_dir}}/logstash"
+logstash_conf_dir: /etc/monasca/log
+
+log_topic: log
+transformed_log_topic: transformed-log
+
+log_dir: /var/log
+monasca_log_dir: "{{ log_dir }}/monasca"
+kibana_log_dir: "{{ log_dir}}/kibana"
+elasticsearch_log_dir: "{{ log_dir }}/elasticsearch"
+monasca_log_persister_log_dir: "{{ monasca_log_dir }}/monasca-log-persister"
+monasca_log_transformer_log_dir: "{{ monasca_log_dir }}/monasca-log-transformer"
+
+log_persister_host: 127.0.0.1
+
+kibana_user: kibana
+kibana_group: kibana
+elastic_user: elastic
+elastic_group: elastic
+persister_user: mon-persister
+transformer_user: mon-transformer
+transformer_group: mon-transformer
+monasca_group: monasca
+
+elasticsearch_url: "localhost:9200"

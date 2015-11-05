@@ -1,0 +1,108 @@
+# The region for which all metrics passing through this server will be persisted
+region: {{api_region}}
+
+kafka:
+  brokerUris:
+{% for host in kafka_hosts.split(',') %}
+    - {{host}}
+{% endfor %}
+  zookeeperUris:
+{% for host in zookeeper_hosts.split(',') %}
+    - {{host}}
+{% endfor %}
+  healthCheckTopic: healthcheck
+
+middleware:
+  enabled: true
+  serverVIP: {{keystone_host}}
+  serverPort: {{keystone_port}}
+  useHttps: {{keystone_use_https}}
+  truststore: {{monasca_api_truststore}}
+  truststorePassword: {{monasca_api_truststore_password}}
+  connTimeout: 500
+  connSSLClientAuth: {{keystone_client_auth}}
+  keystore: {{monasca_api_client_keystore}}
+  keystorePassword: {{monasca_api_client_keystore_password}}
+  connPoolMaxActive: 3
+  connPoolMaxIdle: 3
+  connPoolEvictPeriod: 600000
+  connPoolMinIdleTime: 600000
+  connRetryTimes: 2
+  connRetryInterval: 50
+  defaultAuthorizedRoles: {{ defaultAuthorizedRoles }}
+  agentAuthorizedRoles: {{ agentAuthorizedRoles }}
+  adminAuthMethod: {{keystone_auth_method}}
+  adminUser: {{keystone_admin}}
+  adminPassword: {{keystone_admin_password}}
+  adminProjectId:
+{% if keystone_admin_project is defined %}
+  adminProjectName: {{keystone_admin_project}}
+{% else %}
+  adminProjectName:
+{% endif %}
+  adminToken: {{keystone_admin_token}}
+  timeToCacheToken: 600
+  maxTokenCacheSize: 1048576
+
+server:
+  applicationConnectors:
+{% if monasca_api_keystore is defined %}
+    - type: https
+      keyStorePath: {{ monasca_api_keystore }}
+      keyStorePassword: {{ monasca_api_keystore_password }}
+      validateCerts: false
+{% else %}
+    - type: http
+{% endif %}
+{% if monasca_log_api_bind_host is defined %}
+      bindHost: {{ monasca_log_api_bind_host }}
+{% endif %}
+      port: {{ monasca_log_api_client_port }}
+      maxRequestHeaderSize: 16KiB  # Allow large headers used by keystone tokens
+  adminConnectors:
+    - type: http
+      port: {{ monasca_log_api_admin_port }}
+  requestLog:
+   timeZone: UTC
+   appenders:
+    - type: file
+      currentLogFilename: {{log_api_log_dir}}/request.log
+      threshold: ALL
+      archive: true
+      archivedLogFilenamePattern: {{log_api_log_dir}}/request-%d.log.gz
+      archivedFileCount: 5
+
+# Logging settings.
+logging:
+
+  # The default level of all loggers. Can be OFF, ERROR, WARN, INFO, DEBUG, TRACE, or ALL.
+  level: WARN
+
+  # Logger-specific levels.
+  loggers:
+
+    # Sets the level for 'com.example.app' to DEBUG.
+    monasca.log.api: WARN
+
+  appenders:
+    - type: console
+      threshold: ALL
+      timeZone: UTC
+      target: stdout
+      logFormat: # TODO
+
+    - type: file
+      currentLogFilename: {{log_api_log_dir}}/monasca-log-api.log
+      threshold: ALL
+      archive: true
+      archivedLogFilenamePattern: {{log_api_log_dir}}/monasca-log-api-%d.log.gz
+      archivedFileCount: 5
+      timeZone: UTC
+      logFormat: # TODO
+
+    - type: syslog
+      host: localhost
+      port: 514
+      facility: local0
+      threshold: ALL
+      logFormat: # TODO

@@ -1,0 +1,85 @@
+---
+# Copyright 2015 FUJITSU LIMITED
+
+- name: setup group
+  group: name={{monasca_group}} system=yes
+
+- name: Setup user
+  user: name={{monasca_log_agent_system_user}} system=yes group={{monasca_group}}
+
+- name: Create download directory
+  file: path="{{ download_tmp_dir }}" state=directory recurse=yes
+
+- name: Gather OS Specific Variables
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution }}-{{ ansible_distribution_version }}.yml"
+    - "{{ ansible_distribution }}.yml"
+    - "{{ ansible_os_family }}.yml"
+    - "defaults.yml"
+
+- name: Detect if this is a systemd based system
+  shell: if [[ `/sbin/init --version 2>&-` =~ upstart ]]; then echo upstart; elif [[ `systemctl 2>&-` =~ -\.mount ]]; then echo systemd; elif [[ -f /etc/init.d/cron && ! -h /etc/init.d/cron ]]; then echo sysv-init; else echo unknown; fi
+  register: init
+
+- set_fact:
+    use_systemd: "{{ init.stdout == 'systemd' }}"
+    use_upstart: "{{ init.stdout == 'upstart' }}"
+
+- name: Install OpenJDK
+  apt: name=openjdk-7-jre-headless state=present
+  when: ansible_os_family == "Debian"
+
+- name: Install OpenJDK
+  yum: name=java-1.7.0-openjdk state=present
+  when: ansible_os_family == "RedHat"
+
+- name: Create monasca base directory
+  file: path={{base_dir_agent}} state=directory owner=root group={{monasca_group}} mode=750
+
+- name: Fetch logstash tar.gz file
+  get_url: dest={{ download_tmp_dir }}/logstash-{{logstash_agent_version}}.tar.gz url={{logstash_agent_download}} timeout={{download_timeout}}
+
+- name: Uncompress the logstash tar
+  unarchive: copy=no dest={{base_dir_agent}} src={{ download_tmp_dir }}/logstash-{{logstash_agent_version}}.tar.gz owner={{monasca_log_agent_system_user}} group={{monasca_group}} mode="u+rwX,g+rX,o-rwx"
+
+- name: Link logstash files
+  file: src={{base_dir_agent}}/logstash-{{logstash_agent_version}} dest={{logstash_agent_dest}} state=link owner={{monasca_log_agent_system_user}} group={{monasca_group}} force=no
+
+- name: Create a directory for configuration files
+  file: path={{logstash_agent_conf_dir}} state=directory owner={{monasca_log_agent_system_user}} group={{monasca_group}} mode="u+rwX,g+rX,o-rwx" recurse=yes
+
+- name: Create a directory for log files
+  file: path={{logstash_agent_log_dir}} state=directory owner={{monasca_log_agent_system_user}} group={{monasca_group}} mode="u+rwX,g+rX,o-rwx" recurse=yes
+
+- name: Copy monasca-output-plugin
+  copy: src={{output_plugin_version}} dest={{logstash_agent_dest}}/{{output_plugin_version}} owner={{monasca_log_agent_system_user}} group={{monasca_group}} mode=0640
+
+- name: Install monasca-output-plugin
+  command: "{{logstash_agent_dest}}/bin/plugin install {{logstash_agent_dest}}/{{output_plugin_version}}"
+
+- name: Create upstart config for monasca-log-agent
+  template: dest=/etc/init/monasca-log-agent.conf owner=root group=root mode=640 src=monasca-log-agent.conf.j2
+  notify:
+    - restart monasca-log-agent
+  when: use_upstart
+
+- name: Create systemd config for monasca-log-agent
+  template: dest=/etc/systemd/system/monasca-log-agent.service owner=root group=root mode=640 src=monasca-log-agent.service.j2
+  notify:
+    - restart monasca-log-agent
+  when: use_systemd
+
+- name: Create monasca-log-agent configuration file
+  template: dest={{logstash_agent_conf_dir}}/agent.conf owner={{monasca_log_agent_system_user}} group={{monasca_group}} mode=640 src=agent.conf.j2
+  notify:
+    - restart monasca-log-agent
+
+- name: Remove installed gem files
+  file: path="{{item}}" state=absent
+  with_items:
+    - "{{logstash_agent_dest}}/{{output_plugin_version}}"
+    - "{{logstash_agent_dest}}/logstash-output-monasca_api-0.1.gem"
+
+- name: Enable monasca-log-agent
+  service: name=monasca-log-agent state=started enabled=yes

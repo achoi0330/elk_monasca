@@ -1,0 +1,41 @@
+---
+# Copyright 2015 FUJITSU LIMITED
+
+- name: Setup group
+  group: name={{transformer_user}} system=yes
+
+- name: Setup user
+  user: name={{transformer_user}} system=yes group={{transformer_group}}
+
+- name: Fetch logstash tar.gz file
+  get_url: >
+    dest={{ download_tmp_dir }}/logstash-{{logstash_version}}.tar.gz
+    url={{logstash_download}}/logstash-{{logstash_version}}.tar.gz
+    timeout={{download_timeout}}
+
+- name: Uncompress the logstash tar
+  unarchive: >
+    copy=no
+    dest={{elk_base_dir}}
+    src={{ download_tmp_dir }}/logstash-{{logstash_version}}.tar.gz
+
+- name: Set proper attributes of logstah files
+  file:
+    path={{elk_base_dir}}/logstash-{{logstash_version}}
+    state=directory
+    owner={{transformer_user}}
+    group={{transformer_group}}
+    mode="u+rwX,g+rX,o-rwx"
+    recurse=yes
+
+- name: Link logstash files
+  file: >
+    src={{elk_base_dir}}/logstash-{{logstash_version}}
+    dest={{logstash_dest}}
+    state=link
+    owner={{transformer_user}}
+    group={{transformer_group}}
+    force=no
+
+- name: Create a directory for configuration files
+  file: path={{logstash_conf_dir}} state=directory owner=root group={{monasca_group}} mode=750

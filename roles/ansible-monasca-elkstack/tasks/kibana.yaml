@@ -1,0 +1,100 @@
+---
+# Copyright 2015 FUJITSU LIMITED
+
+- name: Setup group
+  group: name={{kibana_group}} system=yes
+
+- name: Setup user
+  user: name={{kibana_user}} system=yes group={{kibana_group}}
+
+- name: Fetch kibana tar.gz file
+  get_url: >
+    dest={{ download_tmp_dir }}/kibana-{{kibana_version}}.tar.gz
+    url={{kibana_download}}/archive/v{{kibana_version}}.tar.gz
+    timeout={{download_timeout}}
+    force=yes
+
+- name: Uncompress the kibana tar
+  unarchive: >
+    copy=no
+    dest={{elk_base_dir}}
+    src={{ download_tmp_dir }}/kibana-{{kibana_version}}.tar.gz
+
+- name: Set proper attributes of kibana files
+  file:
+    path={{elk_base_dir}}/kibana-{{kibana_version}}
+    state=directory
+    owner={{kibana_user}}
+    group={{kibana_group}}
+    mode="u+rwX,g+rX,o-rwx"
+    recurse=yes
+
+- name: Link kibana files
+  file: >
+    src={{elk_base_dir}}/kibana-{{kibana_version}}
+    dest={{kibana_dest}}
+    owner={{kibana_user}}
+    group={{kibana_group}}
+    state=link
+    force=no
+
+- name: Create a log directory
+  file: path={{ kibana_log_dir }} state=directory owner={{kibana_user}} group={{kibana_group}} mode="u+rwX,g+rX,o-rwx" recurse=yes
+
+- name: Create config file
+  template: dest={{ kibana_dest }}/config/kibana.yml owner={{kibana_user}} group={{kibana_group}} mode=640 src=kibana.yml.j2
+
+- name: Create upstart config
+  template: dest=/etc/init/kibana.conf owner=root group=root mode=640 src=kibana.conf.j2
+  notify:
+    - restart kibana
+  when: ansible_os_family == "Debian"
+
+- name: Create systemd config
+  template: dest=/etc/systemd/system/kibana.service owner=root group=root mode=640 src=kibana.service.j2
+  notify:
+    - restart kibana
+  when: ansible_os_family == "RedHat"
+
+- name: Detect if this is a systemd based system
+  command: cat /proc/1/comm
+  register: init
+- set_fact: use_systemd=True
+  when: init.stdout == 'systemd'
+- set_fact: use_systemd=False
+  when: init.stdout != 'systemd'
+
+- name: check if firewalld
+  command: /usr/bin/systemctl status firewalld
+  ignore_errors: yes
+  register: firewalld
+  when: use_systemd
+
+- name: Set firewalld rule
+  firewalld: port="{{ item }}/tcp" permanent=true state=enabled
+  with_items:
+    - "{{ kibana_port }}"
+  notify:
+    - restart firewalld
+  when: firewalld is defined and firewalld.rc == 0
+
+- name: Check if ports are allowed
+  shell: iptables -L | grep -q "Allow_tcp_{{item}}"
+  with_items:
+    - "{{ kibana_port }}"
+  register: check_allow_tcp
+  ignore_errors: yes
+  changed_when: no
+  always_run: yes
+  when: (firewalld is undefined) or (firewalld.rc != 0)
+
+- name: Allow ports
+  command: >
+    iptables -A INPUT -p tcp -m tcp --dport {{item.item}} -m comment --comment "Allow_tcp_{{item.item}}" -j ACCEPT
+  with_items: check_allow_tcp.results
+  notify:
+    - save iptables
+  when: (firewalld is undefined or firewalld.rc != 0) and item.rc != 0
+
+- name: Enable kibana
+  service: name=kibana state=started enabled=yes

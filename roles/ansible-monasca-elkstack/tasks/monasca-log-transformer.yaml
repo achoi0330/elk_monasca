@@ -1,0 +1,25 @@
+---
+# Copyright 2015 FUJITSU LIMITED
+
+- name: Create upstart config for monasca-log-transformer
+  template: dest=/etc/init/monasca-log-transformer.conf owner=root group=root mode=640 src=monasca-log-transformer.conf.j2
+  notify:
+    - restart monasca-log-transformer
+  when: ansible_os_family == "Debian"
+
+- name: Create systemd config for monasca-log-transformer
+  template: dest=/etc/systemd/system/monasca-log-transformer.service owner=root group=root mode=640 src=monasca-log-transformer.service.j2
+  notify:
+    - restart elasticsearch
+  when: ansible_os_family == "RedHat"
+
+- name: Create monasca-log-transformer configuration file
+  template: dest={{logstash_conf_dir}}/transformer.conf owner=root group=root mode=640 src=transformer.conf.j2
+  notify:
+    - restart monasca-log-transformer
+
+- name: Create a log directory
+  file: path={{ monasca_log_transformer_log_dir }} state=directory owner={{transformer_user}} group={{monasca_group}} mode="u+rwX,g+rX,o-rwx" recurse=yes
+
+- name: Enable monasca-log-transformer
+  service: name=monasca-log-transformer state=started enabled=yes

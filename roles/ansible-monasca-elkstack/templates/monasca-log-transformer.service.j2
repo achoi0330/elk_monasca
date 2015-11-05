@@ -1,0 +1,12 @@
+[Unit]
+Description=Monasca Log Transformer
+Requires=network.target
+After=network.target
+
+[Service]
+Type=simple
+Restart=on-failure
+ExecStart={{ logstash_dest }}/bin/logstash -f {{ logstash_conf_dir }}/transformer.conf -l {{ monasca_log_transformer_log_dir }}/logs-transformer.log --verbose
+
+[Install]
+WantedBy=multi-user.target

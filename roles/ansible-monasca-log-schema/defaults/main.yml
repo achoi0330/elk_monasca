@@ -1,0 +1,13 @@
+---
+# Copyright 2015 FUJITSU LIMITED
+
+zookeeper_hosts: "localhost:2181"
+
+kafka_log_topics_enabled: true
+
+kafka_log_partitions: 4
+kafka_log_replicas: 1
+
+kafka_log_topics:
+  log: { replicas: "{{ kafka_log_replicas }}", partitions: "{{ kafka_log_partitions }}" }
+  transformed-log: { replicas: "{{ kafka_log_replicas }}", partitions: "{{ kafka_log_partitions }}" }

@@ -1,0 +1,8 @@
+description "monasca-log-persister"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+
+exec sudo {{logstash_dest}}/bin/logstash -f {{logstash_conf_dir}}/persister.conf -l {{ monasca_log_persister_log_dir }}/logs-persister.log --verbose

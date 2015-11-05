@@ -1,0 +1,25 @@
+---
+# Copyright 2015 FUJITSU LIMITED
+
+- name: Create upstart config for monasca-log-persister
+  template: dest=/etc/init/monasca-log-persister.conf owner=root group=root mode=640 src=monasca-log-persister.conf.j2
+  notify:
+    - restart monasca-log-persister
+  when: ansible_os_family == "Debian"
+
+- name: Create systemd config for monasca-log-persister
+  template: dest=/etc/systemd/system/monasca-log-persister.service owner=root group=root mode=640 src=monasca-log-persister.service.j2
+  notify:
+    - restart monasca-log-persister
+  when: ansible_os_family == "RedHat"
+
+- name: Create monasca-log-persister configuration file
+  template: dest={{logstash_conf_dir}}/persister.conf owner=root group=root mode=640 src=persister.conf.j2
+  notify:
+    - restart monasca-log-persister
+
+- name: Create a log directory
+  file: path={{ monasca_log_persister_log_dir }} state=directory owner={{persister_user}} group={{monasca_group}} mode="u+rwX,g+rX,o-rwx" recurse=yes
+
+- name: Enable monasca-log-persister
+  service: name=monasca-log-persister state=started enabled=yes

@@ -1,0 +1,73 @@
+---
+# Copyright 2015 FUJITSU LIMITED
+
+log_filters:
+  - {
+      name: "multiline",
+      type: '"openstack"',
+      configuration: {
+        pattern: '"^%{TIMESTAMP_ISO8601}%{SPACE}%{NUMBER}%{SPACE}(CRITICAL|ERROR|WARNING|INFO|DEBUG|EXCEPTION|NOTSET)"',
+        what: '"previous"',
+        negate: '"true"'
+      }
+    }
+  - {
+      name: "multiline",
+      type: '"syslog"',
+      configuration: {
+        pattern: '"^%{SYSLOGTIMESTAMP}"',
+        what: '"previous"',
+        negate: '"true"'
+      }
+    }
+  - {
+      name: "multiline",
+      type: '"monasca_java"',
+      configuration: {
+        pattern: '"^!%{SPACE}"',
+        what: '"previous"'
+      }
+    }
+  - {
+      name: "multiline",
+      type: '"python"',
+      configuration: {
+        pattern: '"^(Traceback \(most recent call last\):|\s{2,4}(File)?.+|\w+:\s{1,}.+)"',
+        what: '"previous"'
+      }
+    }
+  - {
+      name: "multiline",
+      type: '"monasca_persister"',
+      configuration: {
+        pattern: '"^%{LOGLEVEL}"',
+        what: '"previous"',
+        negate: '"true"'
+      }
+    }
+  - {
+      name: "multiline",
+      type: '"timestamped"',
+      configuration: {
+        pattern: '"^\[?%{TIMESTAMP_ISO8601}\]?"',
+        what: '"previous"',
+        negate: '"true"'
+      }
+    }
+  - {
+      name: "multiline",
+      type: '"go"',
+      configuration: {
+        pattern: '"^\[(?!signal)\w+\]"',
+        what: '"previous"',
+        negate: '"true"'
+      }
+    }
+  - {
+      name: "multiline",
+      type: '"monasca_log_transformer"',
+      configuration: {
+        pattern: '"^\s?(at){1}\s.+$"',
+        what: '"previous"'
+      }
+    }

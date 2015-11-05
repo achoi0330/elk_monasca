@@ -1,0 +1,11 @@
+.vagrant
+.project
+.pydevproject
+.idea
+.settings
+*.deb
+*.pyc
+*.jar
+roles/tkuhlman.*
+roles/stympy.influxdb
+ansible.cfg

@@ -1,0 +1,8 @@
+description "elasticsearch"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+
+exec sudo {{elasticsearch_dest}}/bin/elasticsearch

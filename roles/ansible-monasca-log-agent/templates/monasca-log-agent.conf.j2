@@ -1,0 +1,8 @@
+description "monasca-log-agent"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+
+exec sudo {{logstash_agent_dest}}/bin/logstash -f {{logstash_agent_conf_dir}}/agent.conf -l {{logstash_agent_log_file}}

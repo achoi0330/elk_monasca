@@ -1,0 +1,8 @@
+description "monasca-log-transformer"
+
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+
+exec sudo {{logstash_dest}}/bin/logstash -f {{logstash_conf_dir}}/transformer.conf -l {{ monasca_log_transformer_log_dir }}/logs-transformer.conf --verbose

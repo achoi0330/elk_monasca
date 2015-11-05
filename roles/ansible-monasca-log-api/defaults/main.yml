@@ -1,0 +1,42 @@
+---
+# Copyright 2015 FUJITSU LIMITED
+
+influxdb_db: mon
+keystone_auth_method: password
+keystone_admin_token:
+keystone_port: 5000
+keystone_use_https: false
+keystone_client_auth: false
+monasca_log_api_client_port: 8070
+monasca_log_api_admin_port: 8071
+monasca_api_client_keystore:
+monasca_api_client_keystore_password:
+monasca_api_java_opts: -Xmx1g
+monasca_api_truststore:
+monasca_api_truststore_password:
+monasca_api_keystore_password:
+monasca_log_api_tarball_base_url: http://localhost:8888
+monasca_log_api_version: 1.1.0-SNAPSHOT
+monasca_log_dir: /var/log/monasca
+monasca_jar_dir: /opt/monasca
+database_name: mon
+database_type: influxdb
+hibernate_support_enabled: "true"
+database_port: 5432
+driver_class: org.postgresql.ds.PGPoolingDataSource
+
+skip_install: False
+verify: True
+
+defaultAuthorizedRoles: [user, domainuser, domainadmin, monasca-user]
+agentAuthorizedRoles: [monasca-agent]
+
+log_api_wait_timeout: 60
+
+monasca_log_api_user: mon-log-api
+monasca_conf_dir: /etc/monasca
+monasca_group: monasca
+log_api_log_dir: "{{ monasca_log_dir }}/log-api"
+log_api_conf_file: "{{ monasca_conf_dir }}/log-api-config.yml"
+log_api_systemd_service: "/etc/systemd/system/monasca-log-api.service"
+log_api_upstart_service: "/etc/init/monasca-log-api.conf"

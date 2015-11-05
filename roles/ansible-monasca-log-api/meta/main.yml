@@ -1,0 +1,17 @@
+---
+galaxy_info:
+  author: Kamil Choroba
+  description: Installs the monasca-log-api part of the Monasca project.
+  company: Fujitsu Enabling Software Technology GmbH
+  license: Apache
+  min_ansible_version: 1.7
+  platforms:
+  - name: Ubuntu
+    versions:
+    - all
+  - name: RedHat
+    versions:
+    - all
+  categories:
+  - monitoring
+dependencies: []

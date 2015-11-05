@@ -1,0 +1,72 @@
+input {
+    kafka {
+        zk_connect => "{{zookeeper_hosts}}"
+        topic_id => "{{transformed_log_topic}}"
+        group_id => "logstash-persister"
+    }
+}
+
+filter {
+    date {
+        match => ["[log][timestamp]", "UNIX"]
+        target => "@timestamp"
+    }
+
+    date {
+        match => ["creation_time", "UNIX"]
+        target => "creation_time"
+    }
+
+    grok {
+        match => {
+            "[@timestamp]" => "^(?<index_date>\d{4}-\d{2}-\d{2})"
+        }
+    }
+
+    if "dimensions" in [log] {
+        ruby {
+            code => "
+                fieldHash = event['log']['dimensions']
+                fieldHash.each do |key, value|
+                    event[key] = value
+                end
+            "
+        }
+    }
+
+    if "application_type" in [log] {
+        mutate {
+            add_field => {
+                application_type => "%{[log][application_type]}"
+            }
+        }
+    } else {
+        mutate {
+            add_field => {
+                application_type => ""
+            }
+        }
+    }
+
+    mutate {
+        add_field => {
+            message => "%{[log][message]}"
+            log_level => "%{[log][level]}"
+            tenant => "%{[meta][tenantId]}"
+            region => "%{[meta][region]}"
+            path => "%{[log][path]}"
+        }
+        remove_field => ["@version", "host", "type", "tags" ,"_index_date", "meta", "log"]
+    }
+}
+
+output {
+    elasticsearch {
+        index => "%{tenant}-%{index_date}"
+        index_type => "logs"
+{% if elasticsearch_hosts|count > 0 %}
+        host => ["{{elasticsearch_hosts | join(', ')}}"]
+{% endif %}
+        bind_host => "{{log_persister_host}}"
+    }
+}

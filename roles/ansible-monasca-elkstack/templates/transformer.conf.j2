@@ -1,0 +1,62 @@
+input {
+    kafka {
+        zk_connect => "{{ zookeeper_hosts }}"
+        topic_id => "{{ log_topic }}"
+        group_id => "transformer-logstash-consumer"
+    }
+}
+
+filter {
+    grok {
+        match => {
+            "[log][message]" => "(?i)(?<log_level>AUDIT|CRITICAL|DEBUG|INFO|TRACE|ERR(OR)?|WARN(ING)?)|\"level\":\s?(?<log_level>\d{2})"
+        }
+    }
+
+    ruby {
+        init => "
+            LOG_LEVELS_MAP = {
+              # SYSLOG
+              'warn' => :Warning,
+              'err' => :Error,
+              # Bunyan errcodes
+              '10' => :Trace,
+              '20' => :Debug,
+              '30' => :Info,
+              '40' => :Warning,
+              '50' => :Error,
+              '60' => :Fatal
+            }
+        "
+        code => "
+            if event['log_level']
+                # keep original value
+                log_level = event['log_level'].downcase
+                if LOG_LEVELS_MAP.has_key?(log_level)
+                    event['log_level_original'] = event['log_level']
+                    event['log_level'] = LOG_LEVELS_MAP[log_level]
+                else
+                    event['log_level'] = log_level.capitalize
+                end
+            else
+                event['log_level'] = 'Unknown'
+            end
+        "
+    }
+
+    mutate {
+        add_field => {
+            "[log][level]" => "%{log_level}"
+        }
+
+        # remove temporary fields
+        remove_field => ["log_level"]
+    }
+}
+
+output {
+    kafka {
+        broker_list => "{{ kafka_hosts }}"
+        topic_id => "{{ transformed_log_topic }}"
+    }
+}
