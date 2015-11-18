@@ -29,6 +29,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     ds.vm.hostname = "devstack"
     ds.vm.box = "monasca/devstack"
     ds.vm.network :private_network, ip: "192.168.10.5"
+#    ds.vm.network "public_network", ip: "10.30.118.77"
     ds.vm.provider "virtualbox" do |vb|
       vb.memory = 7168
       vb.cpus = 4

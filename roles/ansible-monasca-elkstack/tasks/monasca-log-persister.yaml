@@ -14,7 +14,7 @@
   when: ansible_os_family == "RedHat"
 
 - name: Create monasca-log-persister configuration file
-  template: dest={{logstash_conf_dir}}/persister.conf owner=root group=root mode=640 src=persister.conf.j2
+  template: dest={{logstash_conf_dir}}/persister.conf owner={{persister_user}} group={{monasca_group}} mode=640 src=persister.conf.j2
   notify:
     - restart monasca-log-persister
 

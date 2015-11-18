@@ -1,4 +1,4 @@
----
+#---
 # Copyright 2015 FUJITSU LIMITED
 
 - name: Setup group
@@ -10,7 +10,7 @@
 - name: Fetch kibana tar.gz file
   get_url: >
     dest={{ download_tmp_dir }}/kibana-{{kibana_version}}.tar.gz
-    url={{kibana_download}}/archive/v{{kibana_version}}.tar.gz
+    url={{kibana_download}}/kibana-{{kibana_version}}.tar.gz
     timeout={{download_timeout}}
     force=yes
 
@@ -48,7 +48,7 @@
   template: dest=/etc/init/kibana.conf owner=root group=root mode=640 src=kibana.conf.j2
   notify:
     - restart kibana
-  when: ansible_os_family == "Debian"
+#  when: ansible_os_family == "Debian"
 
 - name: Create systemd config
   template: dest=/etc/systemd/system/kibana.service owner=root group=root mode=640 src=kibana.service.j2
@@ -86,7 +86,7 @@
   ignore_errors: yes
   changed_when: no
   always_run: yes
-  when: (firewalld is undefined) or (firewalld.rc != 0)
+  when: firewalld is undefined or firewalld.rc != 0
 
 - name: Allow ports
   command: >

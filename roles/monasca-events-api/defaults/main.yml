@@ -3,7 +3,7 @@
 log_debug: True
 
 events_api_node: 192.168.10.4
-events_api_port: 8082
+events_api_port: 8072
 mysql_node: 192.168.10.4
 mysql_user: monapi
 mysql_pass: password

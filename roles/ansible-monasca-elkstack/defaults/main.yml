@@ -4,13 +4,13 @@
 elk_base_dir: /opt
 download_timeout: 600
 
-download_tmp_dir: /opt
 elasticsearch_version: 1.5.1
 elasticsearch_download: http://download.elasticsearch.org/elasticsearch/elasticsearch
 elasticsearch_dest: "{{elk_base_dir}}/elasticsearch"
+elasticsearch_url: "http://localhost:9200"
 
-kibana_version: 4.1.1
-kibana_download: https://github.com/FujitsuEnablingSoftwareTechnologyGmbH/kibana 
+kibana_version: 4.1.2-linux-x64
+kibana_download: http://download.elastic.co/kibana/kibana
 kibana_dest: "{{elk_base_dir}}/kibana"
 
 kibana_port: 5601
@@ -23,6 +23,7 @@ logstash_version: 1.5.0
 logstash_download: http://download.elastic.co/logstash/logstash
 logstash_dest: "{{elk_base_dir}}/logstash"
 logstash_conf_dir: /etc/monasca/log
+download_tmp_dir: /home
 
 log_topic: log
 transformed_log_topic: transformed-log
@@ -44,5 +45,3 @@ persister_user: mon-persister
 transformer_user: mon-transformer
 transformer_group: mon-transformer
 monasca_group: monasca
-
-elasticsearch_url: "localhost:9200"

@@ -7,17 +7,17 @@
 - name: Setup user
   user: name={{elastic_user}} system=yes group={{elastic_group}}
 
-- name: Fetch elasticsearch tar.gz file
-  get_url: >
-    dest={{ download_tmp_dir }}/elasticsearch-{{elasticsearch_version}}.tar.gz
-    url={{elasticsearch_download}}/elasticsearch-{{elasticsearch_version}}.tar.gz
-    timeout={{download_timeout}}
+#- name: Fetch elasticsearch tar.gz file
+#  get_url: >
+#    dest= /home/elasticsearch-{{elasticsearch_version}}.tar.gz
+#    url={{elasticsearch_download}}/elasticsearch-{{elasticsearch_version}}.tar.gz
+#    timeout={{download_timeout}}
 
-- name: Uncompress the elasticsearch tar
-  unarchive: >
-    copy=no
-    dest={{elk_base_dir}}
-    src={{ download_tmp_dir }}/elasticsearch-{{elasticsearch_version}}.tar.gz
+#- name: Uncompress the elasticsearch tar
+#  unarchive: >
+#    copy=no
+#    dest={{elk_base_dir}}
+#    src= /home/elasticsearch-{{elasticsearch_version}}.tar.gz
 
 - name: Set proper attributes of elasticsearch files
   file:
@@ -66,7 +66,15 @@
 - name: Enable elasticsearch
   service: name=elasticsearch state=started enabled=yes
 
+- name: Wait for elasticsearch port
+  wait_for:
+    port: "{{ elasticsearch_port }}"
+    host: "{{ elasticsearch_host | default('127.0.0.1') }}"
+    state: started
+    timeout: 180
+  register: first_wait
+
 - name: Load logstash index template
-  command: /usr/bin/curl -XPUT 'localhost:9200/_template/logstash' -d @monasca-logstash.json
+  command: /usr/bin/curl -XPUT '{{elasticsearch_url}}/_template/logstash' -d @monasca-logstash.json
   args:
     chdir: "{{ elasticsearch_dest }}/config/templates"

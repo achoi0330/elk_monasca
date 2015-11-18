@@ -3,6 +3,7 @@
 
 base_dir_agent: /opt/monasca
 download_timeout: 600
+download_tmp_dir: /home
 
 logstash_agent_version: 1.5.0
 logstash_agent_download_url: "http://download.elastic.co/logstash/logstash"
@@ -12,6 +13,13 @@ logstash_agent_conf_dir: /etc/monasca/monasca-log-agent
 monasca_log_dir: /var/log/monasca
 logstash_agent_log_dir: "{{ monasca_log_dir }}/monasca-log-agent"
 logstash_agent_log_file: "{{logstash_agent_log_dir}}/monasca-log-agent.log"
+monasca_log_api_url: "http://192.168.10.4:8080"
+keystone_url: "http://192.168.10.5:5000"
+project_name: "mini-mon"
+username: "admin-agent"
+password: "password"
+domain_id: "default"
+ansible_hostname: "elkstack"
 
 output_plugin_version: "logstash-output-monasca_log_api-0.3.2.gem"
 
@@ -19,6 +27,10 @@ custom_log_filters: [
  # here is an example filter configuration
  # { name: "multiline", type: '"java"', configuration: { pattern: '"^%{SPACE}"', what: '"previous"' } }
 ]
+
+log_files:
+  - { tags: '["syslog"]', type: "system", path: "/var/log/messages" }
+  - { tags: '["openstack"]', type: "keystone", path: "/var/log/keystone" }
 
 monasca_log_agent_system_user: mon-log-agent
 monasca_group: monasca

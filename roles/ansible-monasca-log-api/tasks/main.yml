@@ -113,7 +113,7 @@
 - meta: flush_handlers
 
 - name: Enable monasca-log-api
-  service: name=monasca-log-api state=started enabled=yes
+  service: name=mon-log-api state=started enabled=yes
 
 - name: Wait for log-api port
   wait_for: port={{monasca_log_api_client_port}} host={{monasca_log_api_bind_host | default('127.0.0.1') }} state=started timeout="{{ log_api_wait_timeout }}"

@@ -1,22 +1,22 @@
-#input {
-#{% for file in log_files %}
-#  file {
-#    {% if file is mapping %}
-#      {% for key,val in file.items() %}
-#      {{ key }} => {{ val }}
-#      {% endfor %}
-#    {% else %}
-#      path => "{{ file }}"
-#    {% endif %}
-#  }
-#{% endfor %}
-#}
-
 input {
+{% for file in log_files %}
   file {
-    path => "/var/log/*"
+    {% if file is mapping %}
+      {% for key,val in file.items() %}
+      {{ key }} => {{ val }}
+      {% endfor %}
+    {% else %}
+      path => "{{ file }}"
+    {% endif %}
   }
+{% endfor %}
 }
+
+#input {
+#  file {
+#    path => "/var/log/*"
+#  }
+#}
 
 #{% if log_filters is defined and log_filters|length > 0 %}
 #  {% if custom_log_filters is defined and custom_log_filters|length > 0 %}
